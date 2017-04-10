@@ -1,1 +1,17 @@
-Test
+In order to deploy the code, simply following steps need to perform:
+
+1. Log into AWS account by given credentials.
+
+2. Open Cloudformation tab and click over Create Stack option, provide the cloudformation template (cloudformation.json) file.
+
+3. After this you will be asked to supply :
+
+a. Stack name
+b. Password for DB
+c. SSH Key name
+
+4. Then just clicck Next and Cloudformation will start creating the whole stack using VPC, Multi Availability regions Subnets, EC2 Machine (single), AutoScaling upto 10 servers, Security Group for
+Public and Private regions. Public is for EC2 machines and Private for Database Instances.  CloudWatch Alarms will also be setup. Just access the ELB URL and BB Forum site will be available on the spot.
+
+Thanks,
+Sahil

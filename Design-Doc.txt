@@ -1,0 +1,65 @@
+1. Security considerations:
+
+The entire infrastructure is encapsulated into a VPC; all Internet traffic goes through:
+
+VPCInternetGateway: gateway to Internet for VPC components (PublicSubnet*).
+
+There are two main Security Groups which separate the internetfacing parts of the architecture, meaning the webservers(and associated components), from the private parts, meaning the database cluster mainly.
+PublicSecurityGroup: HTTP/HTTPS/SSH access permitted from outside.
+
+PrivateSecurityGroup: Database, access permitted only from web stack to DB stack.
+
+There are two Subnets associated with each group (in distinct availability zones):
+
+PublicSubnetA/B: web servers stack, the subnets are publicly accessible.
+
+HiddenSubnetA/B: database stack, the subnets are not publicly accessible.
+
+The routing for these subnets is as follows:
+
+PublicRouteTable: opens traffic from the public subnets to the Internet.
+
+HiddenRouteTable: ensures privacy for the private subnets.
+
+Currently the private subnets have no access to the outside world (saw no point yet).
+
+2. Scalability considerations
+
+Web Cluster: the web servers are governed by an AutoScalingGroup and sit under an ElasicLoadBalancer instance for loadbalancing and faulttolerance.
+
+Vertical scaling: web servers can be upgraded to larger memory/compute/storage capacities without downtime.
+
+Horizontal scaling: The AutoScalingGroup implements policies for scaling up or down based on CPU usage metrics of the nodes (implemented via CloudWatch Alarms).
+
+Database Cluster: The RDS Aurora cluster has a master (writer) instance and also a read replica at this time.
+
+Vertical scaling: instances can be upgraded to larger memory/compute/storage capacities without downtime.
+
+Horizontal scaling: up to 15 read replicas can be added without downtime; to scale write operations partitioning would
+be an option.
+
+Networking infrastructure: All networking components such as ELBs, ASGs, InternetGateway, VPC Router (and probably many more) are scaledout by the AWS ecosystem.
+
+3. Availability Considerations:
+
+Web Cluster: Both the ASG and ELB instances which govern the web servers currently span over two Availability Zones (although probably all should be used).
+
+Database Cluster: The RDS Aurora deployment has better failover behavior (less downtime) than an analogous installation of ELB + RDS/MySQL instances; although downtime is still possible (in some cases of failover), it is much less likely
+(usually 100 200seconds).
+
+DDoS by attack or failure: I tried as much as possible to avoid any SPoFs (singlepointoffailure) to keep this infrastructure robust and my intent was that DDoS attacks would either: be avoided; mostly by encapsulation (VPC, subnets, traffic rules etc.) or...
+translate to high loads which AWS can take without experiencing service outage; obviously this is still bad, but manageable.
+
+4. Monitoring and Alerts:
+
+The ELB for the web servers commits logs into an S3 Bucket (every 5 minutes).
+
+Following CloudWatch alarms are defined:
+
+Scaling up alarm: send email on ASG events (when CPU usage is over 90%).
+
+Scaling down alarm: send email on ASG events (when CPU usage is under 50%).
+
+Billing alarm: send email when costs exceed a threshold USD amount (1000).
+
+Alarms will notify the "OperationalEMail" address when triggered.
